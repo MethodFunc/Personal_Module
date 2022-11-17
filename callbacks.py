@@ -1,5 +1,6 @@
 from abc import ABCMeta
 
+import sys
 import time
 import numpy as np
 import pandas as pd
@@ -66,7 +67,7 @@ class TFEarlyStop(EarlyBase):
         self.best_weight = None
 
     def save_checkpoint(self, val_loss, model, path):
-        from tensorflow.keras.models import Sequential
+        sequential = tf.keras.models.Sequential
 
         if self.val_loss_min == np.Inf:
             self.model_path = self.create_path(path)
@@ -74,7 +75,7 @@ class TFEarlyStop(EarlyBase):
         if self.verbose:
             print(f'Validation loss decreased ({self.val_loss_min:.6f} --> {val_loss:.6f}. Saving model...')
         if isinstance(model, list):
-            merge_model = Sequential()
+            merge_model = sequential()
             for m in model:
                 merge_model.add(m)
 
@@ -110,6 +111,9 @@ class CustomHistory(tf.keras.callbacks.Callback):
 
     def __init__(self, figsize=(16, 9)):
         super(CustomHistory, self).__init__()
+        if 'ipykernel' not in sys.argv[0]:
+            raise EnvironmentError("The current environment is not ipykerenl. Please check again."
+                                   "Only runs in the ipykerenl environment")
         self.train_loss = []
         self.val_loss = []
         self.get_logs = {}
@@ -171,5 +175,3 @@ class CustomHistory(tf.keras.callbacks.Callback):
         self.graph_ax.legend(loc='upper right')
 
         self.graph_out.update(self.graph_ax.figure)
-
-

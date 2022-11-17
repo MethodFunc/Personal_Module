@@ -145,6 +145,6 @@ def scale_func(data, estimator, ins_type='train'):
     elif ins_type == 'val' or ins_type == 'test':
         scale_data = estimator.transform(data)
     else:
-        raise f'{ins_type} is not support'
+        raise TypeError(f'{ins_type} is not support')
 
     return scale_data
