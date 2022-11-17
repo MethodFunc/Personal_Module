@@ -1,5 +1,6 @@
 from typing import Optional
 
+
 def split_data(data, train_ratio: float = 0.7, val_ratio: Optional[float] = 0.2):
     total_size = len(data)
     train = int(total_size * train_ratio)
