@@ -4,8 +4,11 @@
 1. callbacks.py
 ```
 Tensorflow 저 수준 및 Pytorch 훈련 시 EarlyStopping 구현
-Customhistory = 주피터 노트북에서만 지원함. 훈련 시 그래프와 판다스데이터프레임으로 표현됨 (업데이트 예정)
+Customhistory = 주피터 노트북에서만 지원함. 훈련 시 그래프와 판다스데이터프레임으로 표현됨 - 텐서플로우만 지원
 ```
+CustomHistory
+![](images/20220401_084544985_iOS.gif)
+
 2. loaders.py
 ```
 판다스 csv 로더, 같은 데이터이면서 따로 나누어진 상황 때 쓸려고 만듬

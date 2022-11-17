@@ -1,15 +1,17 @@
 from abc import ABCMeta
 
+import time
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from collections import OrderedDict
+import tensorflow as tf
 import matplotlib.pyplot as plt
 
 
 class EarlyBase(metaclass=ABCMeta):
     def __init__(self):
         self.counter = 0
+        self.val_loss_min = np.INf
         self.best_score = None
         self.early_stop = False
 
@@ -59,7 +61,6 @@ class TFEarlyStop(EarlyBase):
         super(TFEarlyStop, self).__init__()
         self.patience = patience
         self.verbose = verbose
-        self.val_loss_min = np.Inf
         self.delta = delta
         self.rbw = restore_best_weight
         self.best_weight = None
@@ -89,7 +90,6 @@ class PTEarlyStop(EarlyBase):
         super(PTEarlyStop, self).__init__()
         self.patience = patience
         self.verbose = verbose
-        self.val_loss_min = np.Inf
         self.delta = delta
 
     def save_checkpoint(self, val_loss, model, path):
@@ -103,30 +103,37 @@ class PTEarlyStop(EarlyBase):
         self.val_loss_min = val_loss
 
 
-class CustomHistory:
+class CustomHistory(tf.keras.callbacks.Callback):
+    """
+    log loss history
+    """
+
     def __init__(self, figsize=(16, 9)):
+        super(CustomHistory, self).__init__()
         self.train_loss = []
         self.val_loss = []
-        self.time_list = []
-        self.get_log = OrderedDict()
+        self.get_logs = {}
         self.figsize = figsize
-        self.epoch = None
 
-    def __call__(self, epoch, logs):
+    def on_epoch_begin(self, batch, logs=None):
+        self.ts = time.time()
+
+    def on_epoch_end(self, epoch, logs=[]):
+        self.train_loss.append(logs.get('loss'))
+        self.val_loss.append(logs.get('val_loss'))
         self.epoch = epoch
-        if isinstance(logs, dict):
-            self.train_loss.append(logs.get('loss')[epoch - 1].numpy())
-            self.val_loss.append(logs.get('val_loss')[epoch - 1].numpy())
-
-        for key, value in logs.items():
-            try:
-                self.get_log[key] = value[epoch - 1].numpy()
-            except AttributeError:
-                self.get_log[key] = value[epoch - 1]
+        self.timeit = time.time() - self.ts
+        self.get_logs['time'] = self.timeit
+        for key, values in logs.items():
+            self.get_logs[key] = values
 
         self.n = np.arange(0, len(self.train_loss))
+
         self.update_df()
-        self.update_fig()
+        self.update_graph()
+
+    def on_train_end(self, logs=None):
+        plt.close()
 
     def update_df(self):
         def update_style(s, props=''):
@@ -141,25 +148,28 @@ class CustomHistory:
             self.df = pd.DataFrame()
             self.df_output = display(self.df, display_id=True)
 
-        temp_df = pd.DataFrame(self.get_log, index=[0])
-        self.df = pd.concat([self.df, temp_df], ignore_index=True)
+        temp = pd.DataFrame(self.get_logs, index=[0])
+        self.df = pd.concat([self.df, temp], ignore_index=True)
         self.style_df = self.df.style.apply(update_style, props='color:white;background-color:brown;', axis=0)
 
         self.df_output.update(self.style_df)
 
-    def update_fig(self):
-        if not hasattr(self, 'fig'):
-            self.fig, self.ax = plt.subplots(1, figsize=self.figsize)
-            self.plot_output = display(self.fig, display_id=True)
+    def get_df(self):
+        return self.df
 
-        self.ax.clear()
-        self.ax.plot(self.n, self.train_loss, label='loss')
-        self.ax.plot(self.n, self.val_loss, label='val_loss')
-        self.ax.set_title(f"Training Loss [Epoch {self.epoch}]")
-        self.ax.set_xlabel("EPOCH #")
-        self.ax.set_ylabel("Loss")
-        self.ax.legend(loc='upper right')
+    def update_graph(self):
+        if not hasattr(self, 'graph_fig'):
+            self.graph_fig, self.graph_ax = plt.subplots(1, figsize=self.figsize)
+            self.graph_out = display(self.graph_fig, display_id=True)
+        self.graph_ax.clear()
 
-        self.plot_output.update(self.ax.figure)
+        self.graph_ax.plot(self.n, self.train_loss, label="train_loss")
+        self.graph_ax.plot(self.n, self.val_loss, label="val_loss")
+        self.graph_ax.set_title(f"Training Loss [Epoch {self.epoch}]")
+        self.graph_ax.set_xlabel("Epoch #")
+        self.graph_ax.set_ylabel("Loss")
+        self.graph_ax.legend(loc='upper right')
+
+        self.graph_out.update(self.graph_ax.figure)
 
 
