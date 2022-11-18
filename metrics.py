@@ -6,11 +6,6 @@ class ErrorRateBase:
         self.y_true = np.array(y_true) if not isinstance(y_true, np.ndarray) else y_true
         self.y_pred = np.array(y_pred) if not isinstance(y_pred, np.ndarray) else y_pred
 
-        if self.y_true.ndim > 1:
-            self.y_true = self.y_true.ravel()
-        if self.y_pred.ndim > 1:
-            self.y_pred = self.y_pred.ravel()
-
     @classmethod
     def error_print(cls, error_rate):
         print('=====================================')
