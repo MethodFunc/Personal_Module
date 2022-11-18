@@ -1,5 +1,6 @@
-import datetime
-from typing import Optional, TypeVar
+import re
+from datetime import datetime, timedelta
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -68,7 +69,7 @@ def quarter_function(dataframe, col_name: Optional[str] = None):
     return quarter_dataframe
 
 
-def date_function(dataframe, col_name:Optional[str] = None, min_freq: Optional[bool] = True):
+def date_function(dataframe, col_name: Optional[str] = None, min_freq: Optional[bool] = True):
     def type_ds(dataframe):
         month = dataframe.month.values
         day = dataframe.day.values
@@ -100,7 +101,7 @@ def date_function(dataframe, col_name:Optional[str] = None, min_freq: Optional[b
     return date_dataframe
 
 
-def signal_func(dataframe, col_name:Optional[str] = None):
+def signal_func(dataframe, col_name: Optional[str] = None):
     """
     Support Year, day sin cos
     """
@@ -113,7 +114,7 @@ def signal_func(dataframe, col_name:Optional[str] = None):
     day = 24 * hour
     year = 365.2425 * day
 
-    timestamp_s = dataframe.map(lambda y: datetime.datetime.timestamp(y))
+    timestamp_s = dataframe.map(lambda y: datetime.timestamp(y))
 
     year_sin = np.sin(timestamp_s * (2 * np.pi / year))
     year_cos = np.cos(timestamp_s * (2 * np.pi / year))
@@ -122,3 +123,38 @@ def signal_func(dataframe, col_name:Optional[str] = None):
     day_cos = np.cos(timestamp_s * (2 * np.pi / day))
 
     return year_sin, year_cos, day_sin, day_cos
+
+
+def calc_daterange(start_date: str, end_date: str) -> list:
+    """
+    날짜와 날짜 사이의 시간들을 뽑기 위해 만들어진 함수
+    날짜 타입 입력 예시
+    20221101, 2022-11-01, 2022-11-01 00:00, 2022-11-01 00:00:00, 20221101000000
+    :params start_date: 2022-11-01 시작 일
+    :params end_date: 2022-11-02 종료일
+    :return: [2022110101, 2022110102, 2022110103, ..., 2022110221, 2022110222, 2022110223]
+    """
+    pattern = r'[-=+,#/\?:^.@*\"※~ㆍ!』‘|\(\)\[\]`\'…》\”\“\’·\s]'
+
+    date_pattern = {
+        8: '%Y%m%d',
+        10: '%Y%m%d%H',
+        12: '%Y%m%d%H%M',
+        14: '%Y%m%d%H%M%S',
+    }
+
+    start_date = re.sub(pattern, '', start_date)
+    start_date = datetime.strptime(start_date, date_pattern[len(start_date)])
+
+    end_date = re.sub(pattern, '', end_date)
+    end_date = datetime.strptime(end_date, date_pattern[len(end_date)])
+
+    date_diff = end_date - start_date
+    date_range = int(date_diff.days * 24 + date_diff.seconds / 3600) + 1
+
+    date_list = [
+        (start_date + timedelta(hours=i)).strftime("%Y%m%d%H%M")
+        for i in range(date_range)
+    ]
+
+    return date_list
