@@ -40,18 +40,18 @@ def window_function(features, target, seq_len: int, target_len: int, step: int =
         return data
 
 
-def quarter_function(dataframe, col_name: Optional[str] = None):
+def quarter_function(dataframe, date_col: Optional[str] = None):
     """
     :param dataframe: 데이터프레임 시간
-    :param col_name: 데이터프레임이면 시간 행 이름 적기
+    :param date_col: 데이터프레임이면 시간 행 이름 적기
     :return:  [0 ,0, 0, 0]
     """
     if isinstance(dataframe, pd.core.indexes.datetimes.DatetimeIndex):
         series = dataframe.quarter
     elif isinstance(dataframe, pd.core.series.Series):
         series = dataframe.dt.quarter
-    elif isinstance(dataframe, pd.core.frame.DataFrame) and col_name is not None:
-        series = dataframe[col_name].dt.quarter
+    elif isinstance(dataframe, pd.core.frame.DataFrame) and date_col is not None:
+        series = dataframe[date_col].dt.quarter
 
     quarter_list = list()
 
@@ -69,7 +69,7 @@ def quarter_function(dataframe, col_name: Optional[str] = None):
     return quarter_dataframe
 
 
-def date_function(dataframe, col_name: Optional[str] = None, min_freq: Optional[bool] = True):
+def date_function(dataframe, date_col: Optional[str] = None, min_freq: Optional[bool] = True):
     def type_ds(dataframe):
         month = dataframe.month.values
         day = dataframe.day.values
@@ -86,8 +86,8 @@ def date_function(dataframe, col_name: Optional[str] = None, min_freq: Optional[
         dataframe = dataframe.dt
         month, day, weekday, woy, hour = type_ds(dataframe)
 
-    elif isinstance(dataframe, pd.core.frame.DataFrame) and col_name is not None:
-        dataframe = dataframe[[col_name]].dt
+    elif isinstance(dataframe, pd.core.frame.DataFrame) and date_col is not None:
+        dataframe = dataframe[[date_col]].dt
         month, day, weekday, woy, hour = type_ds(dataframe)
 
     date_dataframe = pd.DataFrame({'month': month, 'day': day, 'hour': hour, 'weekday': weekday, 'weekofyear': woy})
@@ -101,12 +101,12 @@ def date_function(dataframe, col_name: Optional[str] = None, min_freq: Optional[
     return date_dataframe
 
 
-def signal_func(dataframe, col_name: Optional[str] = None):
+def signal_func(dataframe, date_col: Optional[str] = None):
     """
     Support Year, day sin cos
     """
-    if isinstance(dataframe, pd.core.frame.DataFrame) and col_name is not None:
-        dataframe = dataframe[col_name]
+    if isinstance(dataframe, pd.core.frame.DataFrame) and date_col is not None:
+        dataframe = dataframe[date_col]
     elif dataframe.index.dtype == '<M8[ns]':
         dataframe = dataframe.index
 
@@ -158,3 +158,29 @@ def calc_daterange(start_date: str, end_date: str) -> list:
     ]
 
     return date_list
+
+
+def convert_dates(dataframe, date_col: str):
+    """
+        가끔 00시를 오전 12시로 표기 되어 있는 날짜 타입들이 있음. 해당 날짜 타입을 정상화 시킴
+        datetime 라이브러리는 한글로된 오전 오후는 인식하지 못함으로 영어로 고침
+        :params dataframe: 날짜가 들어있는 데이터 프레임 (값은 모두 object형식이여야함)
+        :params date_col: 날짜 데이터가 들어있는 행이름
+        :return: 변환된 날짜
+    """
+    dataframe[date_col] = dataframe[date_col].apply(
+        lambda x: x.replace('오전 12:00:00', '오전 00:00:00') if '오전 12:00:00' in x else x)
+    dataframe[date_col] = dataframe[date_col].apply(lambda x: x.replace('오전', 'AM'))
+    dataframe[date_col] = dataframe[date_col].apply(lambda x: x.replace('오후', 'PM'))
+
+    convert_date_list = list()
+    for date in dataframe[date_col]:
+        try:
+            convert_date = datetime.strptime(date, "%Y-%m-%d %p %I:%M:%S")
+            convert_date_list.append(convert_date)
+        except ValueError:
+            # 00:00:00은 I로 컨버터 못하여 ValueError가 뜸 이는 24시간 단위로 처리하면 됨
+            convert_date = datetime.strptime(date, "%Y-%m-%d %p %H:%M:%S")
+            convert_date_list.append(convert_date)
+
+    return convert_date_list
