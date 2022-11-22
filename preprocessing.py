@@ -21,6 +21,7 @@ class MinMaxScale:
             # 판다스 역변환
             data = scale.inverse(data, categories='width')
     """
+
     def __init__(self, feature_range=(0, 1)):
         self.feature_range = feature_range
         self.range_scale = None
@@ -72,10 +73,10 @@ class MinMaxScale:
             inv /= self.range_scale[categories]
         else:
             if not isinstance(data, pd.core.frame.DataFrame):
-                inv = data - self._min.values
+                inv = data - self._min
                 inv /= self.range_scale
             else:
-                inv = data - self._min
+                inv = data - self._min.values
                 inv /= self.range_scale
 
         return inv
@@ -100,6 +101,7 @@ class StandardScale:
             # 판다스 역변환
             data = scale.inverse(data, categories='width')
     """
+
     def __init__(self):
         self._std = None
         self._mean = None
