@@ -1,12 +1,12 @@
-from abc import ABCMeta
-
 import sys
 import time
+from abc import ABCMeta
+from pathlib import Path
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from pathlib import Path
 import tensorflow as tf
-import matplotlib.pyplot as plt
 
 
 class EarlyBase(metaclass=ABCMeta):
